@@ -11,9 +11,10 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from 'react-native';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { ThemedText } from '@/components/themed-text';
 import { TextInput } from 'react-native';
+import { router } from 'expo-router';
 
 
 
@@ -178,7 +179,9 @@ export default function ExploreScreen() {
           <ThemedText type="title" style={styles.title}>
             Menu
           </ThemedText>
-          <Pressable style={[styles.menuItem]}>
+          <Pressable style={[styles.menuItem]}
+          onPress={() => router.push('/(tabs)/planner')}
+          >
             <Text style={styles.menuIcon}>🗓️</Text>
             <Text style={styles.menuText}>Planner</Text>
           </Pressable>
@@ -193,7 +196,10 @@ export default function ExploreScreen() {
             <Text style={styles.menuText}>Milestone</Text>
           </Pressable>
 
-          <Pressable style={styles.menuItem}>
+          <Pressable 
+            style={styles.menuItem}
+            onPress={() => router.push('/(tabs)/petshop')}
+          >
             <Text style={styles.menuIcon}>🐾</Text>
             <Text style={styles.menuText}>Pet Shop</Text>
           </Pressable>
