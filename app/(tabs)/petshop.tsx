@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import {
     StyleSheet,
     View,
@@ -7,10 +6,12 @@ import {
     Text,
     Pressable,
     Modal,
+    PanResponder,
 } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ThemedText } from '@/components/themed-text';
+
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -36,8 +37,54 @@ const PETS: Pet[] = [
 
 export default function PetShopScreen() {
     const scrollY = useRef(new Animated.Value(0)).current;
-    const [previewPet, setPreviewPet] = useState<Pet | null>(null);
     const glowAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(0)).current;
+
+    const [previewPet, setPreviewPet] = useState<Pet | null>(null);
+
+    const TABS = ['Pets', 'Skins', 'Accessories', 'Animations'];
+    const TAB_WIDTH = (width - 24) / TABS.length;
+    const [activeTab, setActiveTab] = useState(0);
+
+    const activeTabRef = useRef(activeTab);
+    useEffect(() => {
+        activeTabRef.current = activeTab;
+    }, [activeTab]);
+
+    const changeTab = (index: number) => {
+        setActiveTab(index);
+        Animated.spring(slideAnim, {
+            toValue: index * TAB_WIDTH,
+            useNativeDriver: true,
+            damping: 18,
+            stiffness: 180,
+        }).start();
+    };
+
+    const panResponder = useRef(
+        PanResponder.create({
+            // Decide if we want to take control
+            onMoveShouldSetPanResponder: (_, gesture) => {
+                const isHorizontal =
+                    Math.abs(gesture.dx) > Math.abs(gesture.dy);
+                const isIntentional = Math.abs(gesture.dx) > 20;
+                return isHorizontal && isIntentional;
+            },
+
+            // User released finger
+            onPanResponderRelease: (_, gesture) => {
+                const current = activeTabRef.current;
+
+                if (gesture.dx < -40 && current < TABS.length - 1) {
+                    changeTab(current + 1);
+                } else if (gesture.dx > 40 && current > 0) {
+                    changeTab(current - 1);
+                }
+            },
+
+        })
+    ).current;
+
 
     useEffect(() => {
         Animated.loop(
@@ -56,21 +103,48 @@ export default function PetShopScreen() {
         ).start();
     }, []);
 
-
     return (
-        <View style={styles.container}>
-            {/* Background */}
+        <View style={styles.container} {...panResponder.panHandlers}>
             <LinearGradient
                 colors={['#EAF4FF', '#FDFEFF']}
                 style={StyleSheet.absoluteFillObject}
             />
 
-            {/* Header */}
             <ThemedText type="title" style={styles.title}>
                 Pet Shop 🐾
             </ThemedText>
 
-            {/* Store Grid */}
+            {/* TAB BAR */}
+            <View style={styles.tabBar} {...panResponder.panHandlers}>
+                <Animated.View
+                    style={[
+                        styles.tabSlider,
+                        {
+                            width: TAB_WIDTH,
+                            transform: [{ translateX: slideAnim }],
+                        },
+                    ]}
+                />
+
+                {TABS.map((tab, index) => (
+                    <Pressable
+                        key={tab}
+                        style={styles.tabItem}
+                        onPress={() => changeTab(index)}
+                    >
+                        <Text
+                            style={[
+                                styles.tabText,
+                                activeTab === index && styles.activeTabText,
+                            ]}
+                        >
+                            {tab}
+                        </Text>
+                    </Pressable>
+                ))}
+            </View>
+
+            {/* STORE GRID (UNCHANGED) */}
             <Animated.ScrollView
                 contentContainerStyle={styles.grid}
                 showsVerticalScrollIndicator={false}
@@ -81,9 +155,13 @@ export default function PetShopScreen() {
             >
                 {PETS.map((pet, index) => {
                     const isEpic = pet.rarity === 'Epic';
+
                     const glowBorderColor = glowAnim.interpolate({
                         inputRange: [0, 1],
-                        outputRange: ['rgba(255,215,0,0.3)', 'rgba(255,215,0,0.9)'], // gold glow
+                        outputRange: [
+                            'rgba(255,215,0,0.3)',
+                            'rgba(255,215,0,0.9)',
+                        ],
                     });
 
                     const glowShadow = glowAnim.interpolate({
@@ -91,26 +169,12 @@ export default function PetShopScreen() {
                         outputRange: [6, 14],
                     });
 
-                    const rowIndex = Math.floor(index / 2);
-                    const inputRange = [
-                        (rowIndex - 1) * 200,
-                        rowIndex * 200,
-                        (rowIndex + 1) * 200,
-                    ];
-
-                    const translateY = scrollY.interpolate({
-                        inputRange,
-                        outputRange: [8, 0, 8],
-                        extrapolate: 'clamp',
-                    });
-
                     return (
                         <Animated.View
                             key={pet.id}
                             style={[
                                 styles.card,
-                                { width: CARD_WIDTH, transform: [{ translateY }] },
-
+                                { width: CARD_WIDTH },
                                 isEpic && {
                                     borderWidth: 2,
                                     borderColor: glowBorderColor,
@@ -121,17 +185,12 @@ export default function PetShopScreen() {
                                 },
                             ]}
                         >
-                            {/* Emoji */}
                             <Text style={styles.petEmoji}>{pet.emoji}</Text>
-
-                            {/* Info */}
                             <Text style={styles.petName}>{pet.name}</Text>
                             <Text style={styles.petRarity}>{pet.rarity}</Text>
 
-                            {/* Bottom Row */}
                             <View style={styles.bottomRow}>
                                 <Text style={styles.petPrice}>₹ {pet.price}</Text>
-
                                 <Pressable
                                     style={styles.previewBtn}
                                     onPress={() => setPreviewPet(pet)}
@@ -144,7 +203,7 @@ export default function PetShopScreen() {
                 })}
             </Animated.ScrollView>
 
-            {/* Preview Modal */}
+            {/* MODAL */}
             <Modal transparent visible={!!previewPet} animationType="fade">
                 <Pressable
                     style={styles.modalOverlay}
@@ -153,17 +212,15 @@ export default function PetShopScreen() {
                     <View style={styles.modalBox}>
                         <Text style={styles.modalEmoji}>{previewPet?.emoji}</Text>
                         <Text style={styles.modalName}>{previewPet?.name}</Text>
-
                         <Pressable style={styles.buyBtn}>
                             <Text style={styles.buyText}>Buy</Text>
                         </Pressable>
                     </View>
                 </Pressable>
             </Modal>
-        </View>
+        </View >
     );
 }
-
 const styles = StyleSheet.create({
     container: { flex: 1 },
 
@@ -174,6 +231,39 @@ const styles = StyleSheet.create({
         fontSize: 30,
         fontWeight: '800',
         color: '#1F3C88',
+    },
+
+    tabBar: {
+        flexDirection: 'row',
+        backgroundColor: '#EAF0F6',
+        padding: 0,
+        borderRadius: 14,
+        margin: 12,
+        position: 'relative',
+        overflow: 'hidden',
+    },
+
+    tabSlider: {
+        position: 'absolute',
+        height: '100%',
+        backgroundColor: '#4A90E2',
+        borderRadius: 12,
+    },
+
+    tabItem: {
+        flex: 1,
+        paddingVertical: 10,
+        alignItems: 'center',
+        zIndex: 1,
+    },
+
+    tabText: {
+        color: '#555',
+        fontWeight: '600',
+    },
+
+    activeTabText: {
+        color: '#fff',
     },
 
     grid: {
@@ -285,4 +375,3 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
 });
-

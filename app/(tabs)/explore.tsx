@@ -125,9 +125,14 @@ export default function ExploreScreen() {
 
         {/* Profile Circle */}
         <View style={styles.Pcircle} />
-        <View style={styles.coinWrapper}>
-          <RotatingCoin />
+        {/* Coin Capsule */}
+        <View style={styles.coinCapsule}>
+          <View style={styles.capsuleBody} />
+          <View style={styles.coinHolder}>
+            <RotatingCoin />
+          </View>
         </View>
+
 
         {/* TODO CARD */}
         <View style={styles.todoCard}>
@@ -299,11 +304,51 @@ const styles = StyleSheet.create({
   coinWrapper: {
     position: 'absolute',
     top: 42,
-    right: 85,
+    right: 90,
     zIndex: 10,
   },
+  coinCapsule: {
+    position: 'absolute',
+    top: 43,
+    right: 77,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  capsuleBody: {
+    height: 26,              // EXACT coin height
+    width: 80,               // space for number later
+    backgroundColor: '#ffffff', // deep blue / slate
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 20,
 
+    justifyContent: 'center',
+    paddingLeft: 12,
 
+    // subtle depth
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  capsuleHighlight: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '45%',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderTopLeftRadius: 20,
+  },
+
+  coinHolder: {
+    width: 27,
+    height: 40,
+    marginLeft: -10,        // 👈 overlaps capsule
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
   /* Overlay */
   overlay: {
