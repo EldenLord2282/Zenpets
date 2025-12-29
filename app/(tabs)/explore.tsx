@@ -248,7 +248,8 @@ export default function ExploreScreen() {
             <Text style={styles.menuText}>Pet Shop</Text>
           </Pressable>
 
-          <Pressable style={styles.menuItem}>
+          <Pressable style={styles.menuItem}
+            onPress={() => router.push('/(tabs)/settings')}>
             <Text style={styles.menuIcon}>⚙️</Text>
             <Text style={styles.menuText}>Settings</Text>
           </Pressable>

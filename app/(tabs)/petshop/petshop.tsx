@@ -7,11 +7,81 @@ import {
     Pressable,
     Modal,
     PanResponder,
+    Easing,
 } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ThemedText } from '@/components/themed-text';
+import MaskedView from '@react-native-masked-view/masked-view';
+import { useFonts } from 'expo-font';
+import { Baloo2_700Bold } from '@expo-google-fonts/baloo-2';
 import { Image } from 'expo-image';
+
+function ShimmerTitle({ text }: { text: string }) {
+    const [fontsLoaded] = useFonts({
+        Baloo2: Baloo2_700Bold,
+    });
+    if (!fontsLoaded) {
+        return null;
+    }
+    const shimmer = useRef(new Animated.Value(0)).current;
+    useEffect(() => {
+        Animated.loop(
+            Animated.timing(shimmer, {
+                toValue: 1,
+                duration: 3500, // slower = premium
+                useNativeDriver: true,
+                easing: Easing.linear,
+            })
+        ).start();
+    }, []);
+
+    const translateX = shimmer.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-300, 300], // smaller than gradient width
+    });
+
+    return (
+        <MaskedView
+            maskElement={
+                <Text
+                    style={{
+                        fontFamily: 'Baloo2',
+                        fontSize: 30,
+                        letterSpacing: 1.2,
+                        textAlign: 'center',
+                    }}
+                >
+                    {text}
+                </Text>
+            }
+        >
+            <Animated.View
+                style={{
+                    transform: [{ translateX }],
+                }}
+            >
+                <LinearGradient
+                    colors={[
+                        '#8B4A14',
+                        '#8B4A14',
+                        '#FFF3C4', // softer highlight (IMPORTANT)
+                        '#8B4A14',
+                        '#8B4A14',
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={{
+                        width: 800,   // VERY IMPORTANT
+                        height: 60,
+                    }}
+                />
+            </Animated.View>
+        </MaskedView>
+    );
+}
+
+
+
 
 
 const { width } = Dimensions.get('window');
@@ -111,12 +181,24 @@ export default function PetShopScreen() {
                 style={StyleSheet.absoluteFillObject}
             />
 
-            <Image
-                source={require('@/assets/images/ribbon_banner.png')}
-                style={styles.banner}
-                contentFit="contain"
-                
-            />
+            <View style={{ position: 'relative', alignItems: 'center' }}>
+                <Image
+                    source={require('@/assets/images/ribbon_banner.png')}
+                    style={styles.banner}
+                    contentFit="contain"
+                />
+
+                <View
+                    style={{
+                        position: 'absolute',
+                        top: '50%',
+                        transform: [{ translateY: -15 }],
+                    }}
+                >
+                    <ShimmerTitle text="Pet Shop" />
+                </View>
+            </View>
+
 
 
             {/* TAB BAR */}
@@ -230,11 +312,11 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
 
     banner: {
-        width: '90%',
-        height: 80,
+        width: '100%',
+        height: 70,
         alignSelf: 'center',
-        marginTop: 50,
-        marginBottom: 12,     
+        marginTop: 20,
+        marginBottom: 0,
     },
 
     tabBar: {
