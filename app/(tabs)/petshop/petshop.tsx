@@ -44,7 +44,14 @@ const CAT_SPRITE = {
     rowsToPlay: 1,
     yOffset: 4,      // pushes cat slightly down
 };
-
+const RABBIT_SPRITE = {
+    frameWidth: 32,
+    frameHeight: 32,
+    columns: 5,      // number of rabit frames
+    totalRows: 1,    // single-row sprite
+    rowsToPlay: 1,
+    yOffset: 4,      // pushes rabbit slightly down
+};
 function SpriteAnimator({
     source,
     frameWidth,
@@ -399,8 +406,26 @@ export default function PetShopScreen() {
                                             />
                                         </View>
                                     )}
-
-                                    {pet.name !== 'Dog' && pet.name !== 'Cat' && (
+                                    {pet.name === 'Rabbit' && (
+                                        <View
+                                        style={{
+                                                transform: [{ scale: 1.7 }],
+                                                top: 12,
+                                                width: 48,
+                                                height: 56,          // 👈 taller camera
+                                                overflow: 'hidden',
+                                                alignItems: 'center',
+                                                
+                                            }}
+                                        >
+                                        <SpriteAnimator
+                                            source={require('@/assets/images/Bunny_PNG/BunnyRun-Sheet.png')}
+                                            {...RABBIT_SPRITE}
+                                        />
+                                        </View>
+                                    
+                                    )}
+                                    {pet.name !== 'Dog' && pet.name !== 'Cat' && pet.name !== 'Rabbit'&& (
                                         <Text style={styles.petEmoji}>{pet.emoji}</Text>
                                     )}
 
