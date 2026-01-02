@@ -15,14 +15,118 @@ import MaskedView from '@react-native-masked-view/masked-view';
 import { useFonts } from 'expo-font';
 import { Baloo2_700Bold } from '@expo-google-fonts/baloo-2';
 import { Image } from 'expo-image';
+import { Image as RNImage } from 'react-native';
+import Skins from '@/components/shop/skins';
+
+
+type SpriteProps = {
+    source: any;
+    frameWidth: number;
+    frameHeight: number;
+    columns: number;
+    totalRows: number;
+    rowsToPlay: number;
+    yOffset?: number;
+};
+const DOG_SPRITE = {
+    frameWidth: 64,
+    frameHeight: 52,
+    columns: 8,
+    totalRows: 8,
+    rowsToPlay: 4,
+    yOffset: 4,
+};
+const CAT_SPRITE = {
+    frameWidth: 48,
+    frameHeight: 48,
+    columns: 6,      // number of cat frames
+    totalRows: 1,    // single-row sprite
+    rowsToPlay: 1,
+    yOffset: 4,      // pushes cat slightly down
+};
+
+function SpriteAnimator({
+    source,
+    frameWidth,
+    frameHeight,
+    columns,
+    totalRows,
+    rowsToPlay,
+    yOffset = 0,
+}: SpriteProps) {
+
+    const FRAME_WIDTH = frameWidth;
+    const FRAME_HEIGHT = frameHeight;
+    const COLUMNS = columns;
+    const TOTAL_ROWS = totalRows;
+    const ROWS_TO_PLAY = rowsToPlay;
+    const FPS = 10;
+
+    const x = useRef(new Animated.Value(0)).current;
+    const y = useRef(new Animated.Value(0)).current;
+    const Y_OFFSET = 4;
+    const frame = useRef(0);
+    const row = useRef(0);
+
+    useEffect(() => {
+        let last = 0;
+        let raf: number;
+
+        const loop = (t: number) => {
+            if (t - last >= 1000 / FPS) {
+                last = t;
+
+                frame.current++;
+
+                if (frame.current >= COLUMNS) {
+                    frame.current = 0;
+                    row.current = (row.current + 1) % ROWS_TO_PLAY;
+
+                    x.setValue(0);
+                    y.setValue(-row.current * FRAME_HEIGHT);
+                } else {
+                    x.setValue(-frame.current * FRAME_WIDTH);
+                }
+            }
+
+            raf = requestAnimationFrame(loop);
+        };
+
+        raf = requestAnimationFrame(loop);
+        return () => cancelAnimationFrame(raf);
+    }, []);
+
+    return (
+        <View
+            style={{
+                width: FRAME_WIDTH,
+                height: FRAME_HEIGHT,
+                overflow: 'hidden',
+            }}
+        >
+            <Animated.View
+                style={{
+                    width: FRAME_WIDTH * COLUMNS,
+                    height: FRAME_HEIGHT * TOTAL_ROWS, // ✅ FULL HEIGHT
+                    transform: [{ translateX: x }, { translateY: y }, { translateY: Y_OFFSET },],
+                }}
+            >
+                <RNImage
+                    source={source}
+                    style={{
+                        width: FRAME_WIDTH * COLUMNS,
+                        height: FRAME_HEIGHT * TOTAL_ROWS,
+
+                    }}
+                />
+            </Animated.View>
+        </View>
+    );
+}
+
 
 function ShimmerTitle({ text }: { text: string }) {
-    const [fontsLoaded] = useFonts({
-        Baloo2: Baloo2_700Bold,
-    });
-    if (!fontsLoaded) {
-        return null;
-    }
+    
     const shimmer = useRef(new Animated.Value(0)).current;
     useEffect(() => {
         Animated.loop(
@@ -80,10 +184,6 @@ function ShimmerTitle({ text }: { text: string }) {
     );
 }
 
-
-
-
-
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
 
@@ -112,11 +212,10 @@ export default function PetShopScreen() {
     const slideAnim = useRef(new Animated.Value(0)).current;
 
     const [previewPet, setPreviewPet] = useState<Pet | null>(null);
-
     const TABS = ['Pets', 'Skins', 'Accessories', 'Animations'];
+
     const TAB_WIDTH = (width - 24) / TABS.length;
     const [activeTab, setActiveTab] = useState(0);
-
     const activeTabRef = useRef(activeTab);
     useEffect(() => {
         activeTabRef.current = activeTab;
@@ -124,6 +223,7 @@ export default function PetShopScreen() {
 
     const changeTab = (index: number) => {
         setActiveTab(index);
+
         Animated.spring(slideAnim, {
             toValue: index * TAB_WIDTH,
             useNativeDriver: true,
@@ -131,6 +231,8 @@ export default function PetShopScreen() {
             stiffness: 180,
         }).start();
     };
+
+
 
     const panResponder = useRef(
         PanResponder.create({
@@ -232,63 +334,113 @@ export default function PetShopScreen() {
             </View>
 
             {/* STORE GRID (UNCHANGED) */}
-            <Animated.ScrollView
-                contentContainerStyle={styles.grid}
-                showsVerticalScrollIndicator={false}
-                onScroll={Animated.event(
-                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-                    { useNativeDriver: false }
-                )}
-            >
-                {PETS.map((pet, index) => {
-                    const isEpic = pet.rarity === 'Epic';
+            <View style={{ flex: 1 }}>
+                {activeTab === 0 && (
+                    <Animated.ScrollView
+                        contentContainerStyle={styles.grid}
+                        showsVerticalScrollIndicator={false}
+                        onScroll={Animated.event(
+                            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                            { useNativeDriver: false }
+                        )}
+                    >
+                        {PETS.map((pet) => {
+                            const isEpic = pet.rarity === 'Epic';
 
-                    const glowBorderColor = glowAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [
-                            'rgba(255,215,0,0.3)',
-                            'rgba(255,215,0,0.9)',
-                        ],
-                    });
+                            const glowBorderColor = glowAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [
+                                    'rgba(255,215,0,0.3)',
+                                    'rgba(255,215,0,0.9)',
+                                ],
+                            });
 
-                    const glowShadow = glowAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [6, 14],
-                    });
+                            const glowShadow = glowAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [6, 14],
+                            });
 
-                    return (
-                        <Animated.View
-                            key={pet.id}
-                            style={[
-                                styles.card,
-                                { width: CARD_WIDTH },
-                                isEpic && {
-                                    borderWidth: 2,
-                                    borderColor: glowBorderColor,
-                                    shadowColor: '#FFD700',
-                                    shadowOpacity: 0.8,
-                                    shadowRadius: glowShadow,
-                                    elevation: 12,
-                                },
-                            ]}
-                        >
-                            <Text style={styles.petEmoji}>{pet.emoji}</Text>
-                            <Text style={styles.petName}>{pet.name}</Text>
-                            <Text style={styles.petRarity}>{pet.rarity}</Text>
-
-                            <View style={styles.bottomRow}>
-                                <Text style={styles.petPrice}>₹ {pet.price}</Text>
-                                <Pressable
-                                    style={styles.previewBtn}
-                                    onPress={() => setPreviewPet(pet)}
+                            return (
+                                <Animated.View
+                                    key={pet.id}
+                                    style={[
+                                        styles.card,
+                                        { width: CARD_WIDTH },
+                                        isEpic && {
+                                            borderWidth: 2,
+                                            borderColor: glowBorderColor,
+                                            shadowColor: '#FFD700',
+                                            shadowOpacity: 0.8,
+                                            shadowRadius: glowShadow,
+                                            elevation: 12,
+                                        },
+                                    ]}
                                 >
-                                    <Text style={styles.previewText}>Preview</Text>
-                                </Pressable>
-                            </View>
-                        </Animated.View>
-                    );
-                })}
-            </Animated.ScrollView>
+                                    {pet.name === 'Dog' && (
+                                        <SpriteAnimator
+                                            source={require('@/assets/images/Pixel Dogs-Sprites/Dogs-Remastered-22.png')}
+                                            {...DOG_SPRITE}
+                                        />
+                                    )}
+
+                                    {pet.name === 'Cat' && (
+                                        <View
+                                            style={{
+                                                width: 48,
+                                                height: 56,          // 👈 taller camera
+                                                overflow: 'hidden',
+                                                alignItems: 'center',
+                                                justifyContent: 'flex-end',
+                                            }}
+                                        >
+                                            <SpriteAnimator
+                                                source={require('@/assets/images/Pixel_Cat/OrangeTabby_Free_Carysaurus/OrangeTabby-Run.png')}
+                                                {...CAT_SPRITE}
+                                            />
+                                        </View>
+                                    )}
+
+                                    {pet.name !== 'Dog' && pet.name !== 'Cat' && (
+                                        <Text style={styles.petEmoji}>{pet.emoji}</Text>
+                                    )}
+
+
+                                    <Text style={styles.petName}>{pet.name}</Text>
+                                    <Text style={styles.petRarity}>{pet.rarity}</Text>
+
+                                    <View style={styles.bottomRow}>
+                                        <Text style={styles.petPrice}>₹ {pet.price}</Text>
+                                        <Pressable
+                                            style={styles.previewBtn}
+                                            onPress={() => setPreviewPet(pet)}
+                                        >
+                                            <Text style={styles.previewText}>Preview</Text>
+                                        </Pressable>
+                                    </View>
+                                </Animated.View>
+                            );
+                        })}
+                    </Animated.ScrollView>
+                )}
+
+                {activeTab === 1 && (
+                    <Skins />
+
+                )}
+
+                {activeTab === 2 && (
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                        <Text>Accessories Shop UI goes here</Text>
+                    </View>
+                )}
+
+                {activeTab === 3 && (
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                        <Text>Animations Shop UI goes here</Text>
+                    </View>
+                )}
+            </View>
+
 
             {/* MODAL */}
             <Modal transparent visible={!!previewPet} animationType="fade">
@@ -312,6 +464,7 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
 
     banner: {
+        fontFamily: 'Baloo2_700Bold',
         width: '100%',
         height: 70,
         alignSelf: 'center',
@@ -364,7 +517,7 @@ const styles = StyleSheet.create({
         height: 190,
         marginBottom: 20,
         borderRadius: 24,
-        backgroundColor: '#fff',
+        backgroundColor: '#ffffffff',
         padding: 14,
         alignItems: 'center',
 
