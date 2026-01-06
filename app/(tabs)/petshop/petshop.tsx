@@ -27,6 +27,7 @@ type SpriteProps = {
     totalRows: number;
     rowsToPlay: number;
     yOffset?: number;
+    fps?: number;
 };
 const DOG_SPRITE = {
     frameWidth: 64,
@@ -52,6 +53,21 @@ const RABBIT_SPRITE = {
     rowsToPlay: 1,
     yOffset: 4,      // pushes rabbit slightly down
 };
+const HORSE_SPRITE = {
+    frameWidth: 32,
+    frameHeight: 32,
+    columns: 22,
+    totalRows: 1,
+    rowsToPlay: 1,
+    yOffset: 3,
+};
+const FOX_SPRITE = {
+    frameWidth: 32,
+    frameHeight: 32,
+    columns: 14,
+    totalRows: 4
+};
+
 function SpriteAnimator({
     source,
     frameWidth,
@@ -60,6 +76,7 @@ function SpriteAnimator({
     totalRows,
     rowsToPlay,
     yOffset = 0,
+    fps = 10,
 }: SpriteProps) {
 
     const FRAME_WIDTH = frameWidth;
@@ -67,7 +84,7 @@ function SpriteAnimator({
     const COLUMNS = columns;
     const TOTAL_ROWS = totalRows;
     const ROWS_TO_PLAY = rowsToPlay;
-    const FPS = 10;
+    const FPS = fps;
 
     const x = useRef(new Animated.Value(0)).current;
     const y = useRef(new Animated.Value(0)).current;
@@ -79,21 +96,16 @@ function SpriteAnimator({
         let last = 0;
         let raf: number;
 
+        row.current = rowsToPlay - 1; // ✅ FIXED ROW (0-based)
+
         const loop = (t: number) => {
             if (t - last >= 1000 / FPS) {
                 last = t;
 
-                frame.current++;
+                frame.current = (frame.current + 1) % COLUMNS;
 
-                if (frame.current >= COLUMNS) {
-                    frame.current = 0;
-                    row.current = (row.current + 1) % ROWS_TO_PLAY;
-
-                    x.setValue(0);
-                    y.setValue(-row.current * FRAME_HEIGHT);
-                } else {
-                    x.setValue(-frame.current * FRAME_WIDTH);
-                }
+                x.setValue(-frame.current * FRAME_WIDTH);
+                y.setValue(-row.current * FRAME_HEIGHT);
             }
 
             raf = requestAnimationFrame(loop);
@@ -101,7 +113,7 @@ function SpriteAnimator({
 
         raf = requestAnimationFrame(loop);
         return () => cancelAnimationFrame(raf);
-    }, []);
+    }, [rowsToPlay, FPS]);
 
     return (
         <View
@@ -115,7 +127,10 @@ function SpriteAnimator({
                 style={{
                     width: FRAME_WIDTH * COLUMNS,
                     height: FRAME_HEIGHT * TOTAL_ROWS, // ✅ FULL HEIGHT
-                    transform: [{ translateX: x }, { translateY: y }, { translateY: Y_OFFSET },],
+                    transform: [
+                        { translateX: x },
+                        { translateY: Animated.add(y, new Animated.Value(Y_OFFSET)) },
+                    ],
                 }}
             >
                 <RNImage
@@ -133,7 +148,7 @@ function SpriteAnimator({
 
 
 function ShimmerTitle({ text }: { text: string }) {
-    
+
     const shimmer = useRef(new Animated.Value(0)).current;
     useEffect(() => {
         Animated.loop(
@@ -206,7 +221,7 @@ const PETS: Pet[] = [
     { id: 1, name: 'Dog', emoji: '🐶', rarity: 'Common', price: 250 },
     { id: 2, name: 'Cat', emoji: '🐱', rarity: 'Common', price: 250 },
     { id: 3, name: 'Rabbit', emoji: '🐰', rarity: 'Rare', price: 500 },
-    { id: 4, name: 'Parrot', emoji: '🦜', rarity: 'Rare', price: 500 },
+    { id: 4, name: 'Horse', emoji: '🐴', rarity: 'Rare', price: 500 },
     { id: 5, name: 'Fox', emoji: '🦊', rarity: 'Epic', price: 900 },
     { id: 6, name: 'Panda', emoji: '🐼', rarity: 'Epic', price: 900 },
     { id: 7, name: 'Tiger', emoji: '🐯', rarity: 'Epic', price: 1200 },
@@ -238,9 +253,6 @@ export default function PetShopScreen() {
             stiffness: 180,
         }).start();
     };
-
-
-
     const panResponder = useRef(
         PanResponder.create({
             // Decide if we want to take control
@@ -264,8 +276,6 @@ export default function PetShopScreen() {
 
         })
     ).current;
-
-
     useEffect(() => {
         Animated.loop(
             Animated.sequence([
@@ -282,8 +292,8 @@ export default function PetShopScreen() {
             ])
         ).start();
     }, []);
-
     return (
+
         <View style={styles.container} {...panResponder.panHandlers}>
             <LinearGradient
                 colors={['#EAF4FF', '#FDFEFF']}
@@ -368,6 +378,7 @@ export default function PetShopScreen() {
                             });
 
                             return (
+
                                 <Animated.View
                                     key={pet.id}
                                     style={[
@@ -408,24 +419,71 @@ export default function PetShopScreen() {
                                     )}
                                     {pet.name === 'Rabbit' && (
                                         <View
-                                        style={{
+                                            style={{
                                                 transform: [{ scale: 1.7 }],
                                                 top: 12,
                                                 width: 48,
                                                 height: 56,          // 👈 taller camera
                                                 overflow: 'hidden',
                                                 alignItems: 'center',
-                                                
+
                                             }}
                                         >
-                                        <SpriteAnimator
-                                            source={require('@/assets/images/Bunny_PNG/BunnyRun-Sheet.png')}
-                                            {...RABBIT_SPRITE}
-                                        />
+                                            <SpriteAnimator
+                                                source={require('@/assets/images/Bunny_PNG/BunnyRun-Sheet.png')}
+                                                {...RABBIT_SPRITE}
+                                                fps={12}
+                                            />
                                         </View>
-                                    
+
                                     )}
-                                    {pet.name !== 'Dog' && pet.name !== 'Cat' && pet.name !== 'Rabbit'&& (
+                                    {pet.name === 'Horse' && (
+                                        <View
+                                            style={{
+                                                transform: [{ scale: 1.5 }],
+                                                top: 12,
+                                                width: 32,
+                                                height: 56,
+                                                overflow: 'hidden',
+                                                alignItems: 'center',
+                                               
+
+                                            }}
+                                        >
+                                            <SpriteAnimator
+                                                source={require('@/assets/images/FarmHorsePack/Eating.png')}
+                                                {...HORSE_SPRITE}
+                                                fps={6}
+                                                rowsToPlay={1}
+                                                yOffset={1100}
+                                            />
+                                        </View>
+
+                                    )}
+                                    {pet.name === 'Fox' && (
+                                        <View
+                                            style={{
+                                                transform: [{ scale: 2 }],
+                                                top: 40,
+                                                width: 32,
+                                                height: 56,
+                                                overflow: 'hidden',
+                                                alignItems: 'center',
+
+
+                                            }}
+                                        >
+                                            <SpriteAnimator
+                                                source={require('@/assets/images/Pixel_Fox/Fox Sprite Sheet.png')}
+                                                {...FOX_SPRITE}
+                                                fps={10}
+                                                rowsToPlay={1}
+
+                                            />
+                                        </View>
+
+                                    )}
+                                    {pet.name !== 'Dog' && pet.name !== 'Cat' && pet.name !== 'Rabbit' && pet.name !== 'Horse' && pet.name !== 'Fox' && (
                                         <Text style={styles.petEmoji}>{pet.emoji}</Text>
                                     )}
 
